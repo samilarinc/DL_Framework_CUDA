@@ -11,7 +11,7 @@ class cuda1DArray{
     void control_cuda(cudaError_t error);
     cuda1DArray(vector<vector<double>> data_vec);
     cuda1DArray(int height, int width);
-    cuda1DArray(int height, int width, double* arr);
+    cuda1DArray(int height, int width, double* arr, bool already_cuda);
     cuda1DArray addConstant(double constant);
     cuda1DArray subConstant(double constant);
     cuda1DArray mulConstant(double constant);
