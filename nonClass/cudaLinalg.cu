@@ -130,7 +130,7 @@ int main()
     cudaStatus = cudaMemcpy(host_a, dev_a, N*sizeof(double), cudaMemcpyDeviceToHost);
     if(cudaStatus != cudaSuccess){printf("cudaMemcpy failed!\n");}
 
-    for(int i = 0; i < 1000000; i++){
+    for(int i = 0; i < 1000; i++){
         callDet<<<1, N*N>>>(dev_a, dev_det, h);
     }
     cudaStatus = cudaMemcpy(host_det, dev_det, h*sizeof(double), cudaMemcpyDeviceToHost);
@@ -142,6 +142,7 @@ int main()
     delete[] host_det;
 
     printf("%f\n", determinant);
+    cudaDeviceReset();
 }
 
 
