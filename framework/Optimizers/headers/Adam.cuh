@@ -14,7 +14,9 @@ public:
     double mu;
     double rho;
     double *v;
+    double *v_hat;
     double *r;
+    double *r_hat;
     double k;
     int weight_size;
     Regularizer* regularizer;

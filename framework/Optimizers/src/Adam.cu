@@ -1,4 +1,5 @@
 #include "headers/Adam.cuh"
+#include<math.h>
 
 __global__ void adam_update(double *w, double *g, int size, double lr){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -7,23 +8,16 @@ __global__ void adam_update(double *w, double *g, int size, double lr){
     }
 }
 
-__global__ void calc_v(double mu, double *v, double *g, int size){
+__global__ void calc_rv(double rho, double mu, double *r, double *v, double *g, int size){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if(idx < size){
-        v[idx] = mu * v[idx] + (1 - mu) * g[idx];
-    }
-}
-
-__global__ void calc_r(double rho, double *r, double *g, int size){
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if(idx < size){
+        v[idx] = mu * v[idx] + (1 - mu) * g[idx];      
         r[idx] = rho * r[idx] + (1 - rho) * g[idx] * g[idx];
     }
 }
 
-__global__ void divCpnstant(double *in, double c, int size){
+__global__ void divConstant(double *in, double c, int size){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if(idx < size){
@@ -40,6 +34,11 @@ Adam::Adam(double learning_rate, int weight_size, double mu, double rho, Regular
     if(err != cudaSuccess)printf("Error allocating v\n");
     err = cudaMalloc((double **)&this->r, weight_size * sizeof(double));
     if(err != cudaSuccess)printf("Error allocating r\n");
+    err = cudaMalloc((double **)&this->v_hat, weight_size * sizeof(double));
+    if(err != cudaSuccess)printf("Error allocating v_hat\n");
+    err = cudaMalloc((double **)&this->r_hat, weight_size * sizeof(double));
+    if(err != cudaSuccess)printf("Error allocating r_hat\n");    
+
     this->mu = mu;
     this->rho = rho;
     this->regularizer = regularizer;
@@ -48,6 +47,8 @@ Adam::Adam(double learning_rate, int weight_size, double mu, double rho, Regular
 Adam::~Adam(){
     cudaFree(this->v);
     cudaFree(this->r);
+    cudaFree(this->v_hat);
+    cudaFree(this->r_hat);
 }
 
 void Adam::step(double* weights, double* gradients){
@@ -55,7 +56,7 @@ void Adam::step(double* weights, double* gradients){
         double* temp = regularizer->calc_gradient(weights, size);
         adam_update<<<size+1, 1>>>(weights, temp, size, this->lr);
     }
-    calc_v<<<size+1, 1>>>(this->mu, this->v, gradients, size);
-    calc_r<<<size+1, 1>>>(this->rho, this->r, gradients, size);
-    divCpnstant<<<size+1, 1>>>(this->v, this->k, size);
+    calc_rv<<<size+1, 1>>>(rho, m, this->r, this->v, gradients, size);
+    divConstant<<<size+1, 1>>>(this->v, this->k, size);
+    
 }
