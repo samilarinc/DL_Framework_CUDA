@@ -17,7 +17,7 @@ __global__ void fillMatrix(double *input, double num, int h, int w){
 void RegTestNorm(double alpha = 0.5, int num_weights = 5, double init_weights = 1);
 void RegTestGrad(double alpha = 0.5, int num_weights = 5, double init_weights = 1);
 void DenseTest();
-void SGDTest(int num_weights = 5, double init_weights = 1, double init_grad = 0.3, double lr = 0.1, double reg_alpha = 0.5);
+void SGDTest(double momentum = 0, int num_weights = 5, double init_weights = 1, double init_grad = 0.3, double lr = 0.1, double reg_alpha = 0.5);
 
 int main()
 {
@@ -25,9 +25,10 @@ int main()
     return 0;
 }
 
-void SGDTest(int num_weights, double init_weights, double init_grad, double lr, double reg_alpha){
+void SGDTest(double momentum, int num_weights, double init_weights, double init_grad, double lr, double reg_alpha){
     L1 *reg = new L1(reg_alpha);
-    SGD optimizer(lr, reg);
+    SGD optimizer(lr, num_weights, 0.5, reg);
+    fillMatrix<<<32,1>>>(optimizer.v, 1, num_weights, 1);
     double *weights, *gradients;
     double *host_weights = (double*)malloc(num_weights*sizeof(double));
     cudaError_t err;
