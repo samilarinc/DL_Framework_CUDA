@@ -1,7 +1,9 @@
 #ifndef CONV_H
 #define CONV_H
 
-class Conv{
+#include "headers/Base.cuh"
+
+class Conv: public BaseLayer {
 public:
     Conv(int in_h, int in_w, int ker_h, int ker_w, int stride = 1, char pad = 'V');
     ~Conv();

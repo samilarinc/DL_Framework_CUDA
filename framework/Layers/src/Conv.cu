@@ -1,6 +1,5 @@
 #include<cuda_runtime.h>
 #include<stdio.h>
-#include "headers/Base.cuh"
 #include "headers/Conv.cuh"
 
 #define ceil_x_over_y(x,y) (x/y + ((x%y)?1:0))
