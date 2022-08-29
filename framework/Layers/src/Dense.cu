@@ -24,6 +24,7 @@ __global__ void dense_forward(double* input, double* weight, double* bias, doubl
 Dense::Dense(int in_size, int out_size) : BaseLayer(true){
     this->in_size = in_size;
     this->out_size = out_size;
+    this->weight_size = in_size * out_size;
     cudaError_t err;
     err = cudaMalloc((double **)&this->weights, in_size * out_size * sizeof(double));
     if (err != cudaSuccess)printf("Error allocating memory for weights\n");

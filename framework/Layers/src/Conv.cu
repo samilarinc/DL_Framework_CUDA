@@ -45,6 +45,7 @@ Conv::Conv(int in_h, int in_w, int ker_h, int ker_w, int stride, char pad){
     this->ker_w = ker_w;
     this->in_h = in_h;
     this->in_w = in_w;
+    this->weight_size = ker_h * ker_w;
     double *weights, *bias;
     err = cudaMalloc((double **)&weights, sizeof(double) * ker_h * ker_w);
     if(err != cudaSuccess)printf("Weights malloc error\n");

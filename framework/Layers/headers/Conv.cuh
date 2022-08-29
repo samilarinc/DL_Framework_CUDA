@@ -24,6 +24,7 @@ public:
     int right_down;
     int out_w;
     int out_h;
+    int weight_size;
 };
 
 #endif

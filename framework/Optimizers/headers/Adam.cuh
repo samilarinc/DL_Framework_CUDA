@@ -1,7 +1,7 @@
 #ifndef ADAM_H
 #define ADAM_H
 
-#include "headers/Optimizer.h"
+#include "headers/Optimizer.cuh"
 #include "headers/Regularizer.cuh"
 
 class Adam : public Optimizer {

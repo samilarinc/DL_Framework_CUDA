@@ -10,6 +10,7 @@ public:
     double* forward(double *input);
     int in_size;
     int out_size;
+    int weight_size;
     double *weights;
     double *bias;
     double *output;

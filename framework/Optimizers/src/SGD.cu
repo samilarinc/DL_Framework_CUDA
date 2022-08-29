@@ -27,7 +27,7 @@ SGD::SGD(double learning_rate, int weight_size, double momentum, Regularizer* re
         if(err != cudaSuccess)printf("Error setting memory for v\n");
     }
     else{
-        self.v = NULL;
+        this->v = NULL;
     }
     this->size = weight_size;
 }
@@ -39,13 +39,13 @@ SGD::~SGD() {
 
 void SGD::step(double* weights, double* gradients) {
     if(this->regularizer != NULL){
-        double* temp = regularizer->calc_gradient(weights, size);
-        sgd_update<<<size+1, 1>>>(weights, temp, size, this->lr);
+        double* temp = regularizer->calc_gradient(weights, this->size);
+        sgd_update<<<this->size+1, 1>>>(weights, temp, this->size, this->lr);
     }
     if(v != NULL){
-        sgd_update_momentum<<<size+1, 1>>>(weights, gradients, v, size, this->lr, this->momentum);
+        sgd_update_momentum<<<this->size+1, 1>>>(weights, gradients, v, this->size, this->lr, this->momentum);
     }
     else{
-        sgd_update<<<size+1, 1>>>(weights, gradients, size, this->lr);
+        sgd_update<<<this->size+1, 1>>>(weights, gradients, this->size, this->lr);
     }
 }

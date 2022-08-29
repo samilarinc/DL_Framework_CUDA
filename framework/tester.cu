@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include "headers/Constant.cuh"
 #include "headers/Dense.cuh"
 #include "headers/Conv.cuh"
 #include "headers/L1.cuh"
@@ -18,11 +19,25 @@ void RegTestNorm(double alpha = 0.5, int num_weights = 5, double init_weights = 
 void RegTestGrad(double alpha = 0.5, int num_weights = 5, double init_weights = 1);
 void DenseTest();
 void SGDTest(double momentum = 0, int num_weights = 5, double init_weights = 1, double init_grad = 0.3, double lr = 0.1, double reg_alpha = 0.5);
+void InitializerTest(double init_weights = 1);
 
 int main()
 {
-    
+    InitializerTest(0.1);
     return 0;
+}
+
+void InitializerTest(double init_weights){
+    Constant initializer(init_weights);
+    int size = 20;
+    double *input = new double[size];
+    memset(input, 0, size*sizeof(double));
+    double* dev_w = initializer.initialize(size);
+    cudaMemcpy(input, dev_w, size*sizeof(double), cudaMemcpyDeviceToHost);
+    for(int i = 0; i < size; i++){
+        printf("%f ", input[i]);
+    }
+    printf("\n");
 }
 
 void SGDTest(double momentum, int num_weights, double init_weights, double init_grad, double lr, double reg_alpha){
@@ -38,7 +53,7 @@ void SGDTest(double momentum, int num_weights, double init_weights, double init_
     printf(err == cudaSuccess ? "." : "Memory allocation failed\n");
     fillMatrix<<<16,1>>>(weights, init_weights, num_weights, 1);
     fillMatrix<<<16,1>>>(gradients, init_grad, num_weights, 1);
-    optimizer.step(weights, gradients, num_weights);
+    optimizer.step(weights, gradients);
     err = cudaMemcpy(host_weights, weights, num_weights * sizeof(double), cudaMemcpyDeviceToHost);
     printf(err == cudaSuccess ? "." : "Memory allocation failed1asd\n");
     printf("\n");

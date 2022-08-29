@@ -1,5 +1,6 @@
 #include "headers/Adam.cuh"
-#include<math.h>
+#include <math.h>
+#include <stdio.h>
 
 __global__ void adam_update(double *w, double *g, int size, double lr){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -25,8 +26,24 @@ __global__ void divConstant(double *in, double c, int size){
     }
 }
 
+__global__ void divConstantNoChange(double *in, double c, int size, double *out){
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if(idx < size){
+        out[idx] = in[idx] / c;
+    }
+}
+
+__global__ void calculateAdamGrad(double *v_hat, double *r_hat, int size){
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if(idx < size){
+        v_hat[idx] = v_hat[idx] / (sqrt(r_hat[idx]) + 1e-8);
+    }
+}
+
 Adam::Adam(double learning_rate, int weight_size, double mu, double rho, Regularizer* regularizer) : Optimizer(regularizer) {
-    this->learning_rate = learning_rate;
+    this->lr = learning_rate;
     this->weight_size = weight_size;
     this->k = 1;
     cudaError_t err;
@@ -53,10 +70,15 @@ Adam::~Adam(){
 
 void Adam::step(double* weights, double* gradients){
     if(this->regularizer != NULL){
-        double* temp = regularizer->calc_gradient(weights, size);
-        adam_update<<<size+1, 1>>>(weights, temp, size, this->lr);
+        double* temp = regularizer->calc_gradient(weights, weight_size);
+        adam_update<<<weight_size+1, 1>>>(weights, temp, weight_size, this->lr);
     }
-    calc_rv<<<size+1, 1>>>(rho, m, this->r, this->v, gradients, size);
-    divConstant<<<size+1, 1>>>(this->v, this->k, size);
-    
+    calc_rv<<<weight_size+1, 1>>>(rho, mu, this->r, this->v, gradients, weight_size);
+    double temp_divider = 1 - pow(this->mu, this->k);
+    divConstantNoChange<<<weight_size+1, 1>>>(this->v, temp_divider, weight_size, this->v_hat);
+    temp_divider = 1 - pow(this->rho, this->k);
+    divConstantNoChange<<<weight_size+1, 1>>>(this->r, temp_divider, weight_size, this->r_hat);
+    this->k += 1;
+    calculateAdamGrad<<<weight_size+1, 1>>>(this->v_hat, this->r_hat, weight_size);
+    adam_update<<<weight_size+1, 1>>>(weights, this->v_hat, weight_size, this->lr);    
 }
