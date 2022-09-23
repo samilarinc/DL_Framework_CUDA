@@ -11,7 +11,7 @@
 __global__ void fillMatrix(double *input, double num, int h, int w){
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i < h*w){
-        input[i] = num;
+        input[i] = i;
     }
 }
 
@@ -23,7 +23,7 @@ void InitializerTest(double init_weights = 1);
 
 int main()
 {
-    InitializerTest(0.1);
+    DenseTest();
     return 0;
 }
 
@@ -112,16 +112,23 @@ void RegTestGrad(double alpha, int num_weights, double init_weights){
 void DenseTest(){
     cudaError_t err;
     double *mat, *output;
-    int in = 3, out = 2;
+    double *layer_output;
+    int in = 8, out = 5;
+    double *temp_input = (double*) malloc(in*sizeof(double));
     err = cudaMalloc((void**)&mat, in*sizeof(double));
     if(err != cudaSuccess)printf("Error allocating memory for mat\n");
     output = (double*)malloc(out*sizeof(double));
     fillMatrix<<<128, 1>>>(mat, 1, in, 1);
     Dense layer(in, out);
-    if(err != cudaSuccess)printf("Error copying weights\n");
-    layer.forward(mat);
-    err = cudaMemcpy(output, layer.output, out*sizeof(double), cudaMemcpyDeviceToHost);
+    layer_output = layer.forward(mat);
+    err = cudaMemcpy(output, layer_output, out*sizeof(double), cudaMemcpyDeviceToHost);
     if(err != cudaSuccess)printf("Error copying output\n");
+    err = cudaMemcpy(temp_input, mat, in*sizeof(double), cudaMemcpyDeviceToHost);
+    if(err != cudaSuccess)printf("Error copying input\n");
+    for(int i = 0; i < in; i++){
+        printf("%f ", temp_input[i]);
+    }
+    printf("\n");
     for(int i = 0; i < out; i++){
         printf("%f\n", output[i]);
     }

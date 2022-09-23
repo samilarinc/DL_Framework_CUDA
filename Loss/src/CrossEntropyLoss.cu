@@ -3,7 +3,7 @@
 #include<math.h>
 #include "headers/CrossEntropyLoss.cuh"
 
-CrossEntropyLoss::CrossEntropyLoss() = default;
+CrossEntropyLoss::CrossEntropyLoss() : Loss(){;}
 CrossEntropyLoss::~CrossEntropyLoss() = default;
 
 __global__ void logLoss(double *y, double *y_hat, double *loss, int n) {
