@@ -7,6 +7,7 @@
 class SGD: public Optimizer {
 public:
     SGD(double learning_rate, int weight_size, double momentum = 0, Regularizer* regularizer = NULL);
+    SGD(SGD& sgd);
     ~SGD();
     void step(double* weights, double* gradients);
 

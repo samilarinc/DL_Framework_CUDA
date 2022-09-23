@@ -40,6 +40,8 @@ L2::L2(double alpha, int max_size){
     if(err != cudaSuccess)printf("Error copying alpha\n");
     err = cudaMemset(temp, 0, sizeof(double) * max_size);
     if(err != cudaSuccess)printf("Error setting temp memory\n");
+    this->alpha = alpha;
+    this->max_size = max_size;
 }
 
 L2::~L2(){

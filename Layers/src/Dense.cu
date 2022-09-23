@@ -59,10 +59,15 @@ __global__ void sum_bias(double *error, double *db, int in_h, int in_w){ // CAN 
     }
 }
 
-Dense::Dense(int in_size, int out_size) : BaseLayer(true){
+Dense::Dense(int in_size, int out_size, Optimizer *optimizer) : BaseLayer(true){
     this->in_size = in_size;
     this->out_size = out_size;
     this->weight_size = in_size * out_size;
+    this->w_optimizer = optimizer;
+    Optimizer *temp_opt = new SGD(optimizer);
+    Regularizer *temp_reg = new L2(optimizer->regularizer->alpha, optimizer->regularizer->max_size);
+    temp_opt->set_regularizer(temp_reg);
+    this->b_optimizer = temp_opt;
     cudaError_t err;
     err = cudaMalloc((double **)&this->weights, in_size * out_size * sizeof(double));
     if (err != cudaSuccess)printf("Error allocating memory for weights\n");
@@ -109,6 +114,9 @@ double* Dense::backward(double *error_tensor){
     dot_T_sec<<<dimGrid, dimBlock>>>(error_tensor, this->weights, this->dx, 1, this->out_size, this->in_size, this->out_size);
     dot_T_first<<<dimGrid, dimBlock>>>(this->last_input, error_tensor, this->dW, 1, this->in_size, 1, this->out_size);
     sum_bias<<<dimGrid, dimBlock>>>(error_tensor, this->db, 1, this->out_size);
-    
+    if(w_optimizer != NULL){
+        w_optimizer->step(this->weights, this->dW, this->weight_size);
+        b_optimizer->step(this->bias, this->db, this->out_size);
+    }
     return this->dx;
 }

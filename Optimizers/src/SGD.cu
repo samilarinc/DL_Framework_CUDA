@@ -17,19 +17,24 @@ __global__ void sgd_update_momentum(double *w, double *g, double *v, int size, d
     }
 }
 
-SGD::SGD(double learning_rate, int weight_size, double momentum, Regularizer* regularizer): Optimizer(regularizer) {
+SGD::SGD(double learning_rate, double momentum, Regularizer* regularizer): Optimizer(regularizer) {
     this->lr = learning_rate;
-    this->momentum = momentum;
+    this->momentum = momentum
+    this->v = NULL;
+}
+
+SGD::SGD(SGD& sgd): Optimizer(sgd.regularizer) {
+    this->lr = sgd.lr;
+    this->momentum = sgd.momentum;
     if(momentum > 0){
-        cudaError_t err = cudaMalloc((double **)&v, sizeof(double) * weight_size);
+        cudaError_t err = cudaMalloc((double **)&v, sizeof(double) * size);
         if(err != cudaSuccess)printf("Error allocating memory for v\n");
-        err = cudaMemset(v, 0, sizeof(double) * weight_size);
+        err = cudaMemset(v, 0, sizeof(double) * size);
         if(err != cudaSuccess)printf("Error setting memory for v\n");
     }
     else{
         this->v = NULL;
     }
-    this->size = weight_size;
 }
 
 SGD::~SGD() {
@@ -37,15 +42,21 @@ SGD::~SGD() {
         cudaFree(v);
 }
 
-void SGD::step(double* weights, double* gradients) {
+void SGD::step(double* weights, double* gradients, int weight_size) {
+    if(v == NULL && momentum > 0){
+        cudaError_t err = cudaMalloc((double **)&v, sizeof(double) * weight_size);
+        if(err != cudaSuccess)printf("Error allocating memory for v\n");
+        err = cudaMemset(v, 0, sizeof(double) * weight_size);
+        if(err != cudaSuccess)printf("Error setting memory for v\n");
+    }
     if(this->regularizer != NULL){
-        double* temp = regularizer->calc_gradient(weights, this->size);
-        sgd_update<<<this->size+1, 1>>>(weights, temp, this->size, this->lr);
+        double* temp = regularizer->calc_gradient(weights, weight_size);
+        sgd_update<<<weight_size+1, 1>>>(weights, temp, weight_size, this->lr);
     }
     if(v != NULL){
-        sgd_update_momentum<<<this->size+1, 1>>>(weights, gradients, v, this->size, this->lr, this->momentum);
+        sgd_update_momentum<<<weight_size+1, 1>>>(weights, gradients, v, weight_size, this->lr, this->momentum);
     }
     else{
-        sgd_update<<<this->size+1, 1>>>(weights, gradients, this->size, this->lr);
+        sgd_update<<<weight_size+1, 1>>>(weights, gradients, weight_size, this->lr);
     }
 }

@@ -11,6 +11,8 @@ public:
     double* calc_gradient(double* weights, int size) override;
 
     double *dev_alpha;
+    double alpha;
+    int max_size;
     double *temp;
 };
 
