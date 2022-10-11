@@ -64,8 +64,8 @@ Dense::Dense(int in_size, int out_size, Optimizer *optimizer) : BaseLayer(true){
     this->out_size = out_size;
     this->weight_size = in_size * out_size;
     this->w_optimizer = optimizer;
-    Optimizer *temp_opt = new SGD(optimizer);
-    Regularizer *temp_reg = new L2(optimizer->regularizer->alpha, optimizer->regularizer->max_size);
+    Optimizer *temp_opt = optimizer->clone();
+    Regularizer *temp_reg = optimizer->regularizer->clone();
     temp_opt->set_regularizer(temp_reg);
     this->b_optimizer = temp_opt;
     cudaError_t err;

@@ -42,9 +42,9 @@ __global__ void calculateAdamGrad(double *v_hat, double *r_hat, int size){
     }
 }
 
-Adam::Adam(double learning_rate, int weight_size, double mu, double rho, Regularizer* regularizer) : Optimizer(regularizer) {
+Adam::Adam(double learning_rate, double mu, double rho, Regularizer* regularizer) : Optimizer(regularizer) {
     this->lr = learning_rate;
-    this->weight_size = weight_size;
+    // this->weight_size = weight_size;
     this->k = 1;
     cudaError_t err;
     err = cudaMalloc((double **)&this->v, weight_size * sizeof(double));
@@ -68,7 +68,7 @@ Adam::~Adam(){
     cudaFree(this->r_hat);
 }
 
-void Adam::step(double* weights, double* gradients){
+void Adam::step(double* weights, double* gradients, int weight_size){
     if(this->regularizer != NULL){
         double* temp = regularizer->calc_gradient(weights, weight_size);
         adam_update<<<weight_size+1, 1>>>(weights, temp, weight_size, this->lr);

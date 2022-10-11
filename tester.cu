@@ -7,6 +7,7 @@
 #include "headers/SGD.cuh"
 
 #define reg_type L1 // l1, l2
+#define DEBUG_DENSE
 
 __global__ void fillMatrix(double *input, double num, int h, int w){
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -14,19 +15,20 @@ __global__ void fillMatrix(double *input, double num, int h, int w){
         input[i] = i;
     }
 }
-
+#ifndef DEBUG_DENSE
 void RegTestNorm(double alpha = 0.5, int num_weights = 5, double init_weights = 1);
 void RegTestGrad(double alpha = 0.5, int num_weights = 5, double init_weights = 1);
-void DenseTest();
 void SGDTest(double momentum = 0, int num_weights = 5, double init_weights = 1, double init_grad = 0.3, double lr = 0.1, double reg_alpha = 0.5);
 void InitializerTest(double init_weights = 1);
+#endif
+void DenseTest();
 
 int main()
 {
     DenseTest();
     return 0;
 }
-
+#ifndef DEBUG_DENSE
 void InitializerTest(double init_weights){
     Constant initializer(init_weights);
     int size = 20;
@@ -108,22 +110,25 @@ void RegTestGrad(double alpha, int num_weights, double init_weights){
     cudaFree(pseudoWeights);
     cudaFree(norm);
 }
-
+#endif
 void DenseTest(){
     cudaError_t err;
     double *mat, *output;
     double *layer_output;
+    double *backward_output;
     int in = 8, out = 5;
     double *temp_input = (double*) malloc(in*sizeof(double));
+    
     err = cudaMalloc((void**)&mat, in*sizeof(double));
     if(err != cudaSuccess)printf("Error allocating memory for mat\n");
     output = (double*)malloc(out*sizeof(double));
     fillMatrix<<<128, 1>>>(mat, 1, in, 1);
     Dense layer(in, out);
     layer_output = layer.forward(mat);
+    backward_output = layer.backward(layer_output);
     err = cudaMemcpy(output, layer_output, out*sizeof(double), cudaMemcpyDeviceToHost);
     if(err != cudaSuccess)printf("Error copying output\n");
-    err = cudaMemcpy(temp_input, mat, in*sizeof(double), cudaMemcpyDeviceToHost);
+    err = cudaMemcpy(temp_input, backward_output, in*sizeof(double), cudaMemcpyDeviceToHost);
     if(err != cudaSuccess)printf("Error copying input\n");
     for(int i = 0; i < in; i++){
         printf("%f ", temp_input[i]);

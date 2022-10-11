@@ -6,6 +6,7 @@
 class L1 : public Regularizer {
 public:
     L1(double alpha, int max_size = 10000);
+    Regularizer* clone() const { return new L1(*this); }
     ~L1();
     double* norm(double* weights, int size) override;
     double* calc_gradient(double* weights, int size) override;

@@ -19,23 +19,23 @@ __global__ void sgd_update_momentum(double *w, double *g, double *v, int size, d
 
 SGD::SGD(double learning_rate, double momentum, Regularizer* regularizer): Optimizer(regularizer) {
     this->lr = learning_rate;
-    this->momentum = momentum
+    this->momentum = momentum;
     this->v = NULL;
 }
 
-SGD::SGD(SGD& sgd): Optimizer(sgd.regularizer) {
-    this->lr = sgd.lr;
-    this->momentum = sgd.momentum;
-    if(momentum > 0){
-        cudaError_t err = cudaMalloc((double **)&v, sizeof(double) * size);
-        if(err != cudaSuccess)printf("Error allocating memory for v\n");
-        err = cudaMemset(v, 0, sizeof(double) * size);
-        if(err != cudaSuccess)printf("Error setting memory for v\n");
-    }
-    else{
-        this->v = NULL;
-    }
-}
+// SGD::SGD(SGD& sgd): Optimizer(sgd.regularizer) {
+//     this->lr = sgd.lr;
+//     this->momentum = sgd.momentum;
+//     if(momentum > 0){
+//         cudaError_t err = cudaMalloc((double **)&v, sizeof(double) * size);
+//         if(err != cudaSuccess)printf("Error allocating memory for v\n");
+//         err = cudaMemset(v, 0, sizeof(double) * size);
+//         if(err != cudaSuccess)printf("Error setting memory for v\n");
+//     }
+//     else{
+//         this->v = NULL;
+//     }
+// }
 
 SGD::~SGD() {
     if(v != NULL)
