@@ -7,7 +7,7 @@
 class SGD: public Optimizer {
 public:
     SGD(double learning_rate, double momentum = 0, Regularizer* regularizer = NULL);
-    Optimizer* clone() const { return new SGD(*this); }
+    virtual SGD* clone() const override { return new SGD(*this); }
     ~SGD();
     void step(double* weights, double* gradients, int weight_size) override;
 

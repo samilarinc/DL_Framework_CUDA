@@ -1,7 +1,7 @@
 #include<stdio.h>
-#include "headers/Constant.cuh"
+// #include "headers/Constant.cuh"
 #include "headers/Dense.cuh"
-#include "headers/Conv.cuh"
+// #include "headers/Conv.cuh"
 #include "headers/L1.cuh"
 #include "headers/L2.cuh"
 #include "headers/SGD.cuh"
@@ -114,6 +114,7 @@ void RegTestGrad(double alpha, int num_weights, double init_weights){
 void DenseTest(){
     cudaError_t err;
     double *mat, *output;
+    double *err_mat;
     double *layer_output;
     double *backward_output;
     int in = 8, out = 5;
@@ -121,11 +122,14 @@ void DenseTest(){
     
     err = cudaMalloc((void**)&mat, in*sizeof(double));
     if(err != cudaSuccess)printf("Error allocating memory for mat\n");
+    err = cudaMalloc((void**)&err_mat, out*sizeof(double));
+    if(err != cudaSuccess)printf("Error allocating memory for err_mat\n");
     output = (double*)malloc(out*sizeof(double));
     fillMatrix<<<128, 1>>>(mat, 1, in, 1);
+    fillMatrix<<<128, 1>>>(err_mat, 1, out, 1);
     Dense layer(in, out);
     layer_output = layer.forward(mat);
-    backward_output = layer.backward(layer_output);
+    backward_output = layer.backward(err_mat);
     err = cudaMemcpy(output, layer_output, out*sizeof(double), cudaMemcpyDeviceToHost);
     if(err != cudaSuccess)printf("Error copying output\n");
     err = cudaMemcpy(temp_input, backward_output, in*sizeof(double), cudaMemcpyDeviceToHost);

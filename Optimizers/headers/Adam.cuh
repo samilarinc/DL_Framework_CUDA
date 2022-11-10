@@ -7,7 +7,7 @@
 class Adam : public Optimizer {
 public:
     Adam(double learning_rate, double mu, double rho, Regularizer* regularizer = NULL);
-    Optimizer* clone() const { return new Adam(*this); }
+    virtual Adam* clone() const override { return new Adam(*this); }
     ~Adam();
     void step(double* weights, double* gradients, int weight_size) override;
 
