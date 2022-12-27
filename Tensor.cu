@@ -127,7 +127,7 @@ Tensor::Tensor(int batch_size, int rows, int cols) {
     this->cols_ = cols;
     this->shape_ = make_tuple(batch_size_, rows_, cols_);
     this->size_ = batch_size_ * rows_ * cols_;
-    cudaError_t err = cudaMallocManaged(&data_, this->size_ * sizeof(double));
+    cudaError_t err = cudaMallocManaged((double **)&this->data_, this->size_ * sizeof(double));
     err_check(err, "Tensor::Tensor(int batch_size, int rows, int cols)");
 }
 
@@ -200,7 +200,7 @@ Tensor::Tensor(vector<double> vec) {
     this->shape_ = make_tuple(batch_size_, rows_, cols_);
     this->size_ = batch_size_ * rows_ * cols_;
     cudaError_t err =
-        cudaMallocManaged(&this->data_, this->size_ * sizeof(double));
+        cudaMallocManaged((double **)&this->data_, this->size_ * sizeof(double));
     err_check(err, "Tensor::Tensor(vector<double> vec)");
 
     for (int i = 0; i < this->rows_; i++) {
@@ -246,6 +246,7 @@ Tensor::Tensor(vector<vector<vector<double>>> vec) {
 }
 
 Tensor::~Tensor() {
+    // printf("Tensor destructor called\n");
     cudaError_t err = cudaFree(this->data_);
     err_check(err, "Tensor::~Tensor()");
 }
@@ -267,10 +268,15 @@ Tensor Tensor::operator+(const Tensor &t) {
 
     Tensor result(this->batch_size_, this->rows_, this->cols_);
 
-    dim3 grid(1);
-    dim3 block(this->size_);
+    int grid_size = this->size_ / 1024 + 1;
+    int block_size = 1024;
+    dim3 grid(grid_size);
+    dim3 block(block_size);
     AddKernel<<<grid, block>>>(this->data_, t.data_, result.data_, this->size_);
-
+    cudaDeviceSynchronize();
+    // printf("AddKernel launched with %d blocks of %d threads\n", grid.x,
+    //        block.x);
+    // printf("Result: %s\n", result.toString().c_str());
     return result;
 }
 
@@ -284,6 +290,7 @@ Tensor Tensor::operator-(const Tensor &t) {
     dim3 grid(1);
     dim3 block(this->size_);
     SubKernel<<<grid, block>>>(this->data_, t.data_, result.data_, this->size_);
+    cudaDeviceSynchronize();
 
     return result;
 }
@@ -299,6 +306,7 @@ Tensor Tensor::operator*(const Tensor &t) {
     dim3 grid(1);
     dim3 block(this->size_);
     MulKernel<<<grid, block>>>(this->data_, t.data_, result.data_, this->size_);
+    cudaDeviceSynchronize();
 
     return result;
 }
@@ -313,17 +321,20 @@ Tensor Tensor::operator/(const Tensor &t) {
     dim3 grid(1);
     dim3 block(this->size_);
     DivKernel<<<grid, block>>>(this->data_, t.data_, result.data_, this->size_);
+    cudaDeviceSynchronize();
 
     return result;
 }
 
 Tensor Tensor::operator+(double scalar) {
     Tensor result(this->batch_size_, this->rows_, this->cols_);
-
-    dim3 grid(1);
-    dim3 block(this->size_);
+    int grid_size = this->size_ / 1024 + 1;
+    int block_size = 1024;
+    dim3 grid(grid_size);
+    dim3 block(block_size);
     AddScalarKernel<<<grid, block>>>(this->data_, scalar, result.data_,
                                      this->size_);
+    cudaDeviceSynchronize();
 
     return result;
 }
@@ -335,6 +346,7 @@ Tensor Tensor::operator-(double scalar) {
     dim3 block(this->size_);
     SubScalarKernel<<<grid, block>>>(this->data_, scalar, result.data_,
                                      this->size_);
+    cudaDeviceSynchronize();
 
     return result;
 }
@@ -346,6 +358,7 @@ Tensor Tensor::operator*(double scalar) {
     dim3 block(this->size_);
     MulScalarKernel<<<grid, block>>>(this->data_, scalar, result.data_,
                                      this->size_);
+    cudaDeviceSynchronize();
 
     return result;
 }
@@ -357,6 +370,7 @@ Tensor Tensor::operator/(double scalar) {
     dim3 block(this->size_);
     DivScalarKernel<<<grid, block>>>(this->data_, scalar, result.data_,
                                      this->size_);
+    cudaDeviceSynchronize();
 
     return result;
 }
@@ -369,6 +383,7 @@ Tensor &Tensor::operator+=(const Tensor &t) {
     dim3 grid(1);
     dim3 block(this->size_);
     AddKernel<<<grid, block>>>(this->data_, t.data_, this->data_, this->size_);
+    cudaDeviceSynchronize();
 
     return *this;
 }
@@ -381,6 +396,7 @@ Tensor &Tensor::operator-=(const Tensor &t) {
     dim3 grid(1);
     dim3 block(this->size_);
     SubKernel<<<grid, block>>>(this->data_, t.data_, this->data_, this->size_);
+    cudaDeviceSynchronize();
 
     return *this;
 }
@@ -394,6 +410,7 @@ Tensor &Tensor::operator*=(const Tensor &t) {
     dim3 grid(1);
     dim3 block(this->size_);
     MulKernel<<<grid, block>>>(this->data_, t.data_, this->data_, this->size_);
+    cudaDeviceSynchronize();
 
     return *this;
 }
@@ -406,6 +423,7 @@ Tensor &Tensor::operator/=(const Tensor &t) {
     dim3 grid(1);
     dim3 block(this->size_);
     DivKernel<<<grid, block>>>(this->data_, t.data_, this->data_, this->size_);
+    cudaDeviceSynchronize();
 
     return *this;
 }
@@ -415,6 +433,7 @@ Tensor &Tensor::operator+=(double scalar) {
     dim3 block(this->size_);
     AddScalarKernel<<<grid, block>>>(this->data_, scalar, this->data_,
                                      this->size_);
+    cudaDeviceSynchronize();
 
     return *this;
 }
@@ -424,6 +443,7 @@ Tensor &Tensor::operator-=(double scalar) {
     dim3 block(this->size_);
     SubScalarKernel<<<grid, block>>>(this->data_, scalar, this->data_,
                                      this->size_);
+    cudaDeviceSynchronize();
 
     return *this;
 }
@@ -433,6 +453,7 @@ Tensor &Tensor::operator*=(double scalar) {
     dim3 block(this->size_);
     MulScalarKernel<<<grid, block>>>(this->data_, scalar, this->data_,
                                      this->size_);
+    cudaDeviceSynchronize();
 
     return *this;
 }
@@ -442,6 +463,7 @@ Tensor &Tensor::operator/=(double scalar) {
     dim3 block(this->size_);
     DivScalarKernel<<<grid, block>>>(this->data_, scalar, this->data_,
                                      this->size_);
+    cudaDeviceSynchronize();
 
     return *this;
 }
@@ -453,6 +475,7 @@ Tensor Tensor::power(double exponent) {
     dim3 block(this->size_);
     PowerKernel<<<grid, block>>>(this->data_, exponent, result.data_,
                                  this->size_);
+    cudaDeviceSynchronize();
 
     return result;
 }
@@ -463,6 +486,7 @@ Tensor Tensor::sign() const {
     dim3 grid(1);
     dim3 block(this->size_);
     SignKernel<<<grid, block>>>(this->data_, result.data_, this->size_);
+    cudaDeviceSynchronize();
 
     return result;
 }
@@ -474,13 +498,15 @@ Tensor Tensor::abs() const {
     return result;
 }
 
-Tensor Tensor::copy() const {
+Tensor Tensor::copy() {
+    // printf("copying tensor\n");
     Tensor result(this->batch_size_, this->rows_, this->cols_);
-
+    // printf("created tensor\n");
     dim3 grid(1);
     dim3 block(this->size_);
     CopyKernel<<<grid, block>>>(this->data_, result.data_, this->size_);
-
+    cudaDeviceSynchronize();
+    // printf("done\n");
     return result;
 }
 
@@ -591,9 +617,9 @@ string Tensor::toString() const {
 
 vector<vector<vector<double>>> Tensor::tolist() const {
     double *data = nullptr;
-    cudaError_t err =
-        cudaMemcpy(data, this->data_, this->size_ * sizeof(double),
-                   cudaMemcpyDeviceToHost);
+    data = (double *)malloc(this->size_ * sizeof(double));
+    cudaError_t err = cudaMemcpy(data, this->data_, this->size_ * sizeof(double),
+                     cudaMemcpyDeviceToHost);
     vector<vector<vector<double>>> result = vector<vector<vector<double>>>(
         this->batch_size_,
         vector<vector<double>>(this->rows_, vector<double>(this->cols_)));
@@ -616,6 +642,7 @@ Tensor Tensor::transpose() {
     dim3 block(this->size_);
     TransposeKernel<<<grid, block>>>(
         this->data_, result.data_, this->batch_size_, this->rows_, this->cols_);
+    cudaDeviceSynchronize();
 
     return result;
 }
@@ -626,13 +653,14 @@ Tensor Tensor::dot_product(const Tensor &other) const {
     dim3 grid(1);
     dim3 block(this->size_);
     MatrixMulKernel<<<grid, block>>>(this->data_, other.data_, result.data_,
-                                      this->batch_size_, this->rows_,
-                                      this->cols_, other.rows_, other.cols_);
+                                     this->batch_size_, this->rows_,
+                                     this->cols_, other.rows_, other.cols_);
+    cudaDeviceSynchronize();
 
     return result;
 }
 
-Tensor& Tensor::operator=(const Tensor &other) {
+Tensor &Tensor::operator=(const Tensor &other) {
     if (this->size_ != other.size_) {
         this->size_ = other.size_;
         cudaError_t err = cudaFree(this->data_);
@@ -649,6 +677,7 @@ Tensor& Tensor::operator=(const Tensor &other) {
     dim3 grid(1);
     dim3 block(this->size_);
     CopyKernel<<<grid, block>>>(other.data_, this->data_, this->size_);
+    cudaDeviceSynchronize();
 
     return *this;
 }

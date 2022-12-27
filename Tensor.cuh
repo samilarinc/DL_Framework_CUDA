@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <cmath>
 #include <random>
@@ -51,7 +52,7 @@ class Tensor {
     Tensor power(double);
     Tensor sign() const;
     Tensor abs() const;
-    Tensor copy() const;
+    Tensor copy();
     Tensor getitem(int) const;
     Tensor getitem(int, int) const;
     double getitem(int, int, int) const;
