@@ -1,7 +1,7 @@
 #include "headers/Dense.cuh"
 #include <stdio.h>
 
-// #define __debug_backward
+// #define __debug_forward
 
 __global__ void initialize(double *A, int N, double constant) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -10,7 +10,7 @@ __global__ void initialize(double *A, int N, double constant) {
     }
 }
 
-__global__ void dense_forward(double* input, double* weight, double* bias, double* out, int in_h, int in_w, int w_w){ // N is the number of columns of A
+__global__ void dense_forward(const double* input, double* weight, double* bias, double* out, int in_h, int in_w, int w_w){ // N is the number of columns of A
     int row = blockIdx.x * blockDim.x + threadIdx.x;
     int col = blockIdx.y * blockDim.y + threadIdx.y;
     
@@ -106,50 +106,102 @@ Dense::~Dense() {
     cudaFree(this->db);
 }
 
-double* Dense::forward(double *input){
+double* Dense::forward(const double *input){
     dim3 dimGrid(32, 32); //change 1 to batch size
     dim3 dimBlock(32, 32);
     cudaError_t err = cudaMemcpy(this->last_input, input, in_size * sizeof(double), cudaMemcpyDeviceToDevice);
     if(err != cudaSuccess)printf("Error copying input to last input\n");
-    
-    #ifdef __debug_forward
-    double *temp = (double *)malloc(in_size * out_size * sizeof(double));
-    err = cudaMemcpy(temp, this->weights, in_size * out_size * sizeof(double), cudaMemcpyDeviceToHost);
-    if(err != cudaSuccess)printf("Error copying weights to host\n");
-    printf("Inside dense weights:\n");
-    for(int i = 0; i < in_size; i++){
-        for(int j = 0; j < out_size; j++){
-            printf("%f ", temp[i*out_size+j]);
-        }
-        printf("\n");
-    }
-    free(temp);
-    
+    {
+        // #ifdef __debug_forward
+        // double *temp = (double *)malloc(in_size * out_size * sizeof(double));
+        // err = cudaMemcpy(temp, this->weights, in_size * out_size * sizeof(double), cudaMemcpyDeviceToHost);
+        // if(err != cudaSuccess)printf("Error copying weights to host\n");
+        // printf("Inside dense weights:\n");
+        // for(int i = 0; i < in_size; i++){
+        //     for(int j = 0; j < out_size; j++){
+        //         printf("%f ", temp[i*out_size+j]);
+        //     }
+        //     printf("\n");
+        // }
+        // free(temp);
+        
 
-    double *temp3 = (double *)malloc(in_size * sizeof(double));
-    err = cudaMemcpy(temp, input, in_size * sizeof(double), cudaMemcpyDeviceToHost);
-    if(err != cudaSuccess)printf("Error copying weights to host\n");
-    printf("Inside dense input:\n");
-    for(int i = 0; i < in_size; i++){
-            printf("%f ", temp[i]);
-        }
-    printf("\n");
-    free(temp3);
-    #endif
+        // double *temp3 = (double *)malloc(in_size * sizeof(double));
+        // err = cudaMemcpy(temp, input, in_size * sizeof(double), cudaMemcpyDeviceToHost);
+        // if(err != cudaSuccess)printf("Error copying weights to host\n");
+        // printf("Inside dense input:\n");
+        // for(int i = 0; i < in_size; i++){
+        //         printf("%f ", temp[i]);
+        //     }
+        // printf("\n");
+        // free(temp3);
+        // #endif
+    }
     dense_forward<<<dimBlock, dimGrid>>>(input, this->weights, this->bias, this->output, 1, this->in_size, this->out_size); // 1 is the number of rows of A, might depend on the batch size
-    #ifdef __debug
-    double *temp2 = (double *)malloc(out_size * sizeof(double));
-    err = cudaMemcpy(temp2, this->output, out_size * sizeof(double), cudaMemcpyDeviceToHost);
-    if(err != cudaSuccess)printf("Error copying weights to host\n");
-    printf("Inside dense output:\n");
-    for(int i = 0; i < out_size; i++){
-            printf("%f ", temp2[i]);
-        }
-    printf("\n");
-    free(temp2);
-    #endif // __debug_forward
+    {
+        // #ifdef __debug
+        // double *temp2 = (double *)malloc(out_size * sizeof(double));
+        // err = cudaMemcpy(temp2, this->output, out_size * sizeof(double), cudaMemcpyDeviceToHost);
+        // if(err != cudaSuccess)printf("Error copying weights to host\n");
+        // printf("Inside dense output:\n");
+        // for(int i = 0; i < out_size; i++){
+        //         printf("%f ", temp2[i]);
+        //     }
+        // printf("\n");
+        // free(temp2);
+        // #endif // __debug_forward
+    }
     return this->output;
 }
+
+// Tensor Dense::forward(Tensor input){
+//     dim3 dimGrid(32, 32); //change 1 to batch size
+//     dim3 dimBlock(32, 32);
+//     cudaError_t err = cudaMemcpy(this->last_input, input.data, in_size * sizeof(double), cudaMemcpyDeviceToDevice);
+//     if(err != cudaSuccess)printf("Error copying input to last input\n");
+//     {
+//         // // #ifdef __debug_forward
+//         // double *temp = (double *)malloc(in_size * sizeof(double));
+//         // err = cudaMemcpy(temp, input.data, in_size * sizeof(double), cudaMemcpyDeviceToHost);
+//         // if(err != cudaSuccess)printf("Error copying data to host\n");
+//         // printf("Inside dense data:\n");
+//         // for(int i = 0; i < in_size; i++){
+//         //     printf("%f ", temp[i]);
+//         // }
+//         // printf("\n");
+//         // free(temp);
+//         // // #endif
+//     }
+//     dense_forward<<<dimBlock, dimGrid>>>(input.data, this->weights, this->bias, this->output, 1, this->in_size, this->out_size);
+//     {
+//         // // #ifdef __debug_forward
+//         // double *temp2 = (double *)malloc(in_size * sizeof(double));
+//         // err = cudaMemcpy(temp2, input.data, in_size * sizeof(double), cudaMemcpyDeviceToHost);
+//         // if(err != cudaSuccess)printf("Error copying data to host\n");
+//         // printf("Inside dense data:\n");
+//         // for(int i = 0; i < in_size; i++){
+//         //     printf("%f ", temp2[i]);
+//         // }
+//         // printf("\n");
+//         // free(temp2);
+//         // // #endif
+//     }
+//     Tensor out_tensor(this->output, 1, this->out_size);
+//     {
+//         // // #ifdef __debug_forward
+//         // double *temp3 = (double *)malloc(in_size * sizeof(double));
+//         // err = cudaMemcpy(temp3, input.data, in_size * sizeof(double), cudaMemcpyDeviceToHost);
+//         // if(err != cudaSuccess)printf("Error copying data to host\n");
+//         // printf("Inside dense data:\n");
+//         // for(int i = 0; i < in_size; i++){
+//         //     printf("%f ", temp3[i]);
+//         // }
+//         // printf("\n");
+//         // free(temp3);
+//         // // #endif
+//     }
+//     return out_tensor;
+// }
 
 double* Dense::backward(double *error_tensor){
     dim3 dimGrid(32, 32); 
